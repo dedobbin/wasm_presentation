@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>WASM Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script>
+
+	const env = {
+		DYNAMICTOP_PTR: 0,
+		STACKTOP: 0,
+		STACK_MAX: 0,
+		
+		//define traps, most of these are for emscripten ?
+		//abort: function() {},
+		//enlargeMemory: function() {},
+		//getTotalMemory: function() {},
+		//abortOnCannotGrowMemory: function() {},
+		//___lock: function() {},
+		//___syscall6: function() {},
+		//___setErrNo: function() {},
+		//___syscall140: function() {},
+		//_emscripten_memcpy_big: function() {},
+		//___syscall54: function() {},
+		//___unlock: function() {},
+		//___syscall146: function() {},
+
+		log : function(i){console.log('wasm called js: ', i)},	//when WASM calls this function, trap to JS
+
+		//We are declaring memory in wasm, but this would be the way to pass from js, share over multiple modules
+		//To import in wat:  (import "env" "memory" (memory (;0;) 256 256))
+
+
+		memory: new WebAssembly.Memory({initial: 255, maximum: 255}),	
+		table: new WebAssembly.Table({initial: 6, element: 'anyfunc', maximum: 6}),
+		memoryBase: 0,
+		tableBase: 0,
+	}
+	const importObject = {
+		env: env
+	}
+	fetch('main.wasm').then(response =>
+		response.arrayBuffer()
+	).then(bytes =>
+		WebAssembly.instantiate(bytes, importObject)
+	).then(results => {
+			const instance = results.instance;
+			const module = results.module;
+			
+			var result = results.instance.exports.some_function(1,2);
+			result = results.instance.exports.logic_flow(20);
+			console.log('called wasm: ', result);
+
+			results.instance.exports.call_js(3);
+
+			var i32 = new Uint32Array(results.instance.exports.memory.buffer);
+			console.log('initial memory: ', i32);
+			for (var i = 0; i < 10; i++) {
+				i32[i] = i * 2;
+			}
+			console.log('mutated memory: ', i32);
+			const mem = results.instance.exports.get_from_memory(2);
+			console.log('read memory from wasm: ', mem);
+			
+//			const sum = results.instance.exports.accumulate(0, 10);
+//			console.log('called wasm: ', sum);
+	});
+
+	//found this function to write strings bytes on bytes
+//	function consoleLogString(offset, length) {
+//		var bytes = new Uint8Array(memory.buffer, offset, length);
+//		var string = new TextDecoder('utf8').decode(bytes);
+//		console.log(string);
+//	}
+
+
+
+	</script>
+</body>
+</html>

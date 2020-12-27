@@ -1,0 +1,9 @@
+*.o
+*.a
+emscripten_sdl/assets
+out
+*.so
+*.wasm
+index.js
+index.data
+a.out.js

@@ -1,0 +1,29 @@
+<!-- Used EMSCRIPTEN SDK to generate a.out.js and wasm module  -->
+
+<script src="a.out.js"></script> <!-- glue code, does a fetch to server .wasm. -->
+<script>
+  Module.onRuntimeInitialized = _ => {
+
+	/* Function exposed by WASM module, start measurement by calling, have tell what is function signature */ 
+    const measure = Module.cwrap('measure', 'number', ['number']);
+    measure(1);
+
+	/* Normal JS meassurement */
+	function does_include(a, b) {
+		return a.includes(b);
+	}
+
+	console.log('starting JS measure');
+	let start_time = Math.round((new Date()).getTime());
+
+	var j = 0;
+	for (let i = 0; i < 1000000000; ++i) {
+        if (does_include('aaaaabababaaaaaa', 'aaa') ){
+			j++;
+		}
+    }
+
+	let end_time = Math.round((new Date()).getTime());
+	console.log( "Duration: " + parseFloat((end_time - start_time) / 1000) + " seconds");
+  };
+</script>

@@ -1,0 +1,80 @@
+<script src="index.js"></script> <!--- generated glue code, which includes the .wasm file -->
+<script>
+
+var add_one_memory = Module.cwrap("add_one_memory", null, ["number", "number"]); 
+var add_one_basic = Module.cwrap("add_one_basic", "number", ["number"]); 
+var pass_array = Module.cwrap("pass_array", null, ["number", "number"]);
+var passFnPointer = Module.cwrap("passFnPointer", null, ["number"]);
+
+
+Module.onRuntimeInitialized = _ => {
+	//Should wait on this to execute code, but because we are using buttons doesn't really matter.
+	console.log("WASM init done");
+}
+
+function basic() {
+	//Because you can only pass a limited amount of types, this will only get you so far
+	//(see imported function signature, number here)
+	console.log(add_one_basic(1))
+}
+
+function memory(){
+	//console.log("heap: ", Module.HEAP8);
+	var input_ptr = Module._malloc(4);
+	var output_ptr = Module._malloc(4);
+    
+	var value = 6;    
+	Module.setValue(input_ptr, value, "i32");     
+	add_one_memory(input_ptr, output_ptr);              
+	var result = Module.getValue(output_ptr, "i32");
+	//console.log("The result read is", result, "at position", output_ptr);
+    console.log(value ,  "->", result);
+
+	Module._free(input_ptr);
+	Module._free(output_ptr);
+}
+
+function do_pass_array(){
+	var len = 20;
+	var ptr = Module._malloc(len * 4);
+	var print = "";
+
+	//Set input array, can also be done directly to Module.HEAP8, but lots of fiddeling.. faster though
+	for (var i = 0; i < len; i++){
+		Module.setValue(ptr + i * 4, i, "i32");
+	}
+
+	//Print input
+	for (var i = 0; i < len; i++){
+		var result = Module.getValue(ptr + i * 4, "i32");
+		print += result + " ";
+	}
+	console.log("before: ", print);
+
+	pass_array(ptr, len);
+
+	//print output
+	print = "";
+	for (var i = 0; i < len; i++){
+		var result = Module.getValue(ptr + i * 4, "i32");
+		print += result + " ";
+	}
+
+	console.log("after: ", print);
+	Module._free(ptr);
+}
+
+function call_back()
+{
+	var fnPtr = Module.addFunction(function () {
+    	alert("You called testExternalJSMethod");
+	}, 'v');
+	passFnPointer(fnPtr);
+}
+
+</script>
+
+<button onclick="basic()">basic param passing</button> <br/>
+<button onclick="memory()">passing param through memory allocation</button> <br/>
+<button onclick="do_pass_array()">passing array through memory allocation</button> <br/>
+<button onclick="call_back()">callback</button> <br/>

@@ -1,0 +1,49 @@
+<EditForm 
+    Model="@exampleModel" 
+    OnValidSubmit="@HandleValidSubmit"
+    id="main-form"
+>
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    Name <br/> <InputText id="name" @bind-Value="exampleModel.Name" /> <br/>
+    Age: <br/> <InputNumber @bind-Value=exampleModel.Age class="form-control" id="Age" /> <br/>
+    
+    <button type="submit">Submit</button>
+</EditForm>
+<br/>
+<div>@status</div>
+
+@using System.Net
+@using System.IO
+@inject HttpClient Http
+@code {
+	// entire dot net framework gets sent to client as WASM module
+	string status = "";
+    
+    private ExampleModel exampleModel = new ExampleModel();
+
+    async private void HandleValidSubmit()
+    {
+		/* Unlike JS, C# is strong typed */
+		var client = new HttpClient();
+        StringContent data = new StringContent("name=" +  exampleModel.Name + "&age=" + exampleModel.Age);
+		HttpResponseMessage	response = await client.PostAsync(
+			"http://localhost:8087/endpoint",
+            data
+		);
+			
+		HttpContent responseContent = response.Content;
+
+		var textResponse = await response.Content.ReadAsStringAsync();
+		var responseCode = response.StatusCode;
+
+		if (responseCode.ToString() == "OK"){
+			status = "yay";
+		} else {
+			status = "It did not go well, reason: " + responseCode.ToString();
+		}
+		//Because is async, we need to rerender component, alternative is wrap this function and await it
+		base.StateHasChanged();
+    }    
+}
